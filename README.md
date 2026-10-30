@@ -3,7 +3,7 @@
 A TypeScript library that wraps the [Vercel AI SDK](https://sdk.vercel.ai/) with automatic
 retry, response telemetry, filler-text stripping, and output compliance rules.
 
-All agent configuration — provider, model, system prompt, compliance rules — lives in a JSON
+All agent configuration - provider, model, system prompt, compliance rules - lives in a JSON
 file. Swap providers or tune prompts without touching code.
 
 ## Install
@@ -20,7 +20,7 @@ Install at least one provider: `@ai-sdk/anthropic >= 1.0.0` or `@ai-sdk/openai >
 
 ---
 
-## Quick start — config file
+## Quick start - config file
 
 Define your agents in a JSON file. No code changes needed to add agents, swap providers, or
 update prompts.
@@ -72,7 +72,7 @@ console.log(result.telemetry);
 
 ### Loading from an environment variable
 
-Useful in containerised deployments — no config file on disk needed:
+Useful in containerised deployments - no config file on disk needed:
 
 ```bash
 export LLM_GATEWAY_CONFIG='{"agents": {"my-agent": { ... }}}'
@@ -90,7 +90,7 @@ const loader = GatewayConfigLoader.fromEnv('MY_AGENTS_CONFIG');
 
 ---
 
-## Quick start — direct API
+## Quick start - direct API
 
 You can also construct a gateway directly without a config file:
 
@@ -118,12 +118,12 @@ const result = await gateway.executeTextTask(
 
 ## Why this exists
 
-LangChain and CrewAI solve orchestration — multi-step pipelines, memory, tool chaining. For
+LangChain and CrewAI solve orchestration - multi-step pipelines, memory, tool chaining. For
 applications that make one agent call per user action, that machinery is overhead, and the raw
 provider SDKs push retry logic, token accounting, and compliance filtering into every call
 site. `llm-gateway` sits between them.
 
-All agent configuration — provider, model, instructions, rules — lives in a JSON file read at
+All agent configuration - provider, model, instructions, rules - lives in a JSON file read at
 runtime, so changing a system prompt, swapping from Claude to GPT, or adjusting temperature
 is a config edit rather than a rebuild.
 
@@ -139,14 +139,14 @@ sites stay clean and the behaviour doesn't drift as you add agents.
 
 ## What it covers
 
-- **Provider switching** — change `provider_package` and `provider_factory_method` in config; no code changes
-- **JSON config** — load agent settings from a file, an env var, or a plain object
-- **Instruction templates** — define `{{variable}}` placeholders in config; fill them at call time
-- **Typed errors** — every failure maps to a `GatewayErrorCode`; `switch` on it without inspecting raw HTTP
-- **Automatic retry** — exponential backoff with jitter for rate limits and server errors (3 attempts; 2 s, 4 s, 8 s)
-- **Response telemetry** — every call returns `tokensConsumedInput`, `tokensConsumedOutput`, and `executionDurationMs`
-- **Output compliance** — define `REPLACE` or `REJECT` rules per agent in config; `REPLACE` runs before `REJECT`
-- **Filler-text stripping** — leading and trailing AI filler phrases are removed from text responses
+- **Provider switching** - change `provider_package` and `provider_factory_method` in config; no code changes
+- **JSON config** - load agent settings from a file, an env var, or a plain object
+- **Instruction templates** - define `{{variable}}` placeholders in config; fill them at call time
+- **Typed errors** - every failure maps to a `GatewayErrorCode`; `switch` on it without inspecting raw HTTP
+- **Automatic retry** - exponential backoff with jitter for rate limits and server errors (3 attempts; 2 s, 4 s, 8 s)
+- **Response telemetry** - every call returns `tokensConsumedInput`, `tokensConsumedOutput`, and `executionDurationMs`
+- **Output compliance** - define `REPLACE` or `REJECT` rules per agent in config; `REPLACE` runs before `REJECT`
+- **Filler-text stripping** - leading and trailing AI filler phrases are removed from text responses
 
 ---
 
@@ -156,9 +156,9 @@ sites stay clean and the behaviour doesn't drift as you add agents.
 
 | Method | Returns | Description |
 |---|---|---|
-| `fromObject(config)` | `GatewayConfigLoader` | Load from a plain object — validates the config |
-| `fromFile(path)` | `Promise<GatewayConfigLoader>` | Load from a JSON file — validates the config |
-| `fromEnv(varName?)` | `GatewayConfigLoader` | Load from an env var (default: `LLM_GATEWAY_CONFIG`) — validates the config |
+| `fromObject(config)` | `GatewayConfigLoader` | Load from a plain object - validates the config |
+| `fromFile(path)` | `Promise<GatewayConfigLoader>` | Load from a JSON file - validates the config |
+| `fromEnv(varName?)` | `GatewayConfigLoader` | Load from an env var (default: `LLM_GATEWAY_CONFIG`) - validates the config |
 | `get(agentName)` | `ConfiguredLLMGateway` | Look up a named agent; throws if not found |
 | `agents()` | `string[]` | List all defined agent names |
 
@@ -242,7 +242,7 @@ JSON-safe compliance rule (RegExp expressed as a string):
 interface SerializedComplianceRule {
   ruleId: string;
   type: 'REPLACE' | 'REJECT';
-  pattern: string;           // RegExp source, e.g. "\\bdelve\\b" — max 500 chars
+  pattern: string;           // RegExp source, e.g. "\\bdelve\\b" - max 500 chars
   flags?: string;            // RegExp flags, e.g. "gi"
   replacementValue?: string; // required when type === 'REPLACE'
   customErrorMessage?: string;
@@ -325,7 +325,7 @@ All errors are instances of `ForgeGatewayError`, which extends `Error` with an
 
 ## Retry behaviour
 
-Retries fire for `PROVIDER_RATE_LIMIT_EXCEEDED` and `PROVIDER_SERVER_ERROR` only — up to 3
+Retries fire for `PROVIDER_RATE_LIMIT_EXCEEDED` and `PROVIDER_SERVER_ERROR` only - up to 3
 attempts with delays of 2 s, 4 s, 8 s plus up to 1 s of random jitter. All other error codes
 throw immediately.
 
