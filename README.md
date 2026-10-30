@@ -1,10 +1,8 @@
 # llm-gateway
 
-A TypeScript library that wraps the [Vercel AI SDK](https://sdk.vercel.ai/) with automatic
-retry, response telemetry, filler-text stripping, and output compliance rules.
+A TypeScript library built on the [Vercel AI SDK](https://sdk.vercel.ai/) that adds retry handling, response telemetry, filler-text removal, and output compliance rules.
 
-All agent configuration - provider, model, system prompt, compliance rules - lives in a JSON
-file. Swap providers or tune prompts without touching code.
+Agent configuration is stored in a JSON file, including the provider, model, system prompt, and compliance rules. You can change providers or update prompts without changing application code.
 
 ## Install
 
@@ -20,12 +18,12 @@ Install at least one provider: `@ai-sdk/anthropic >= 1.0.0` or `@ai-sdk/openai >
 
 ---
 
-## Quick start - config file
+## Quick start — config file
 
-Define your agents in a JSON file. No code changes needed to add agents, swap providers, or
-update prompts.
+Define agents in a JSON file. You can add agents, change providers, and update prompts without modifying your application code.
 
 **`agents.json`**
+
 ```json
 {
   "agents": {
@@ -52,6 +50,7 @@ update prompts.
 ```
 
 **`app.ts`**
+
 ```typescript
 import { GatewayConfigLoader } from 'llm-gateway';
 
@@ -70,9 +69,9 @@ console.log(result.telemetry);
 // → { tokensConsumedInput: 312, tokensConsumedOutput: 498, executionDurationMs: 2041 }
 ```
 
-### Loading from an environment variable
+### Load configuration from an environment variable
 
-Useful in containerised deployments - no config file on disk needed:
+This is useful in containerised deployments where you don't want to keep a config file on disk:
 
 ```bash
 export LLM_GATEWAY_CONFIG='{"agents": {"my-agent": { ... }}}'
@@ -82,7 +81,7 @@ export LLM_GATEWAY_CONFIG='{"agents": {"my-agent": { ... }}}'
 const loader = GatewayConfigLoader.fromEnv(); // reads LLM_GATEWAY_CONFIG
 ```
 
-### Using a different env var name
+### Use a different environment variable
 
 ```typescript
 const loader = GatewayConfigLoader.fromEnv('MY_AGENTS_CONFIG');
@@ -90,9 +89,9 @@ const loader = GatewayConfigLoader.fromEnv('MY_AGENTS_CONFIG');
 
 ---
 
-## Quick start - direct API
+## Quick start — direct API
 
-You can also construct a gateway directly without a config file:
+You can also create a gateway in code, without using a config file:
 
 ```typescript
 import { LLMGateway } from 'llm-gateway';
@@ -118,35 +117,28 @@ const result = await gateway.executeTextTask(
 
 ## Why this exists
 
-LangChain and CrewAI solve orchestration - multi-step pipelines, memory, tool chaining. For
-applications that make one agent call per user action, that machinery is overhead, and the raw
-provider SDKs push retry logic, token accounting, and compliance filtering into every call
-site. `llm-gateway` sits between them.
+LangChain and CrewAI are designed for orchestration: multi-step pipelines, memory, and tool chaining. If your application makes a single agent call for each user action, that level of orchestration may be unnecessary. Using a provider SDK directly also means handling retries, token usage, and output filtering at each call site.
 
-All agent configuration - provider, model, instructions, rules - lives in a JSON file read at
-runtime, so changing a system prompt, swapping from Claude to GPT, or adjusting temperature
-is a config edit rather than a rebuild.
+`llm-gateway` provides a shared layer for those tasks.
 
-The gateway itself has a single job: take instructions in, return text or a structured object
-out. It has no file system access and no knowledge of what called it. Your application owns
-data fetching, context assembly, and what to do with the result.
+Agent configuration—including the provider, model, instructions, and rules—is loaded from a JSON file at runtime. To change a system prompt, switch from Claude to GPT, or adjust the temperature, edit the configuration rather than the application code.
 
-Retry on rate limits, output compliance rules, filler-text stripping, and token telemetry
-behave the same way for every agent call. Putting them in a shared layer means individual call
-sites stay clean and the behaviour doesn't drift as you add agents.
+The gateway has a narrow responsibility: it accepts instructions and returns text or a structured object. It does not access the file system or know which part of your application called it. Your application remains responsible for fetching data, assembling context, and handling the response.
+
+Retry handling, compliance rules, filler-text removal, and token telemetry work the same way for every agent call. Keeping these features in one place avoids duplicating logic across the application.
 
 ---
 
 ## What it covers
 
-- **Provider switching** - change `provider_package` and `provider_factory_method` in config; no code changes
-- **JSON config** - load agent settings from a file, an env var, or a plain object
-- **Instruction templates** - define `{{variable}}` placeholders in config; fill them at call time
-- **Typed errors** - every failure maps to a `GatewayErrorCode`; `switch` on it without inspecting raw HTTP
-- **Automatic retry** - exponential backoff with jitter for rate limits and server errors (3 attempts; 2 s, 4 s, 8 s)
-- **Response telemetry** - every call returns `tokensConsumedInput`, `tokensConsumedOutput`, and `executionDurationMs`
-- **Output compliance** - define `REPLACE` or `REJECT` rules per agent in config; `REPLACE` runs before `REJECT`
-- **Filler-text stripping** - leading and trailing AI filler phrases are removed from text responses
+- **Provider switching** — change `provider_package` and `provider_factory_method` in the config; no application code changes are needed.
+- **JSON configuration** — load agent settings from a file, an environment variable, or a plain object.
+- **Instruction templates** — define `{{variable}}` placeholders in the config and provide their values at call time.
+- **Typed errors** — failures are mapped to a `GatewayErrorCode`, so you can handle them with a `switch` statement instead of inspecting raw HTTP responses.
+- **Automatic retry** — exponential backoff with jitter for rate limits and server errors (3 attempts; 2 s, 4 s, and 8 s).
+- **Response telemetry** — each call returns `tokensConsumedInput`, `tokensConsumedOutput`, and `executionDurationMs`.
+- **Output compliance** — define `REPLACE` or `REJECT` rules for each agent in the config. `REPLACE` rules run before `REJECT` rules.
+- **Filler-text removal** — removes leading and trailing AI filler phrases from text responses.
 
 ---
 
@@ -156,34 +148,30 @@ sites stay clean and the behaviour doesn't drift as you add agents.
 
 | Method | Returns | Description |
 |---|---|---|
-| `fromObject(config)` | `GatewayConfigLoader` | Load from a plain object - validates the config |
-| `fromFile(path)` | `Promise<GatewayConfigLoader>` | Load from a JSON file - validates the config |
-| `fromEnv(varName?)` | `GatewayConfigLoader` | Load from an env var (default: `LLM_GATEWAY_CONFIG`) - validates the config |
-| `get(agentName)` | `ConfiguredLLMGateway` | Look up a named agent; throws if not found |
-| `agents()` | `string[]` | List all defined agent names |
+| `fromObject(config)` | `GatewayConfigLoader` | Loads and validates configuration from a plain object. |
+| `fromFile(path)` | `Promise<GatewayConfigLoader>` | Loads and validates configuration from a JSON file. |
+| `fromEnv(varName?)` | `GatewayConfigLoader` | Loads and validates configuration from an environment variable. Defaults to `LLM_GATEWAY_CONFIG`. |
+| `get(agentName)` | `ConfiguredLLMGateway` | Returns the named agent. Throws an error if the agent is not found. |
+| `agents()` | `string[]` | Returns the names of all configured agents. |
 
-All three factory methods run the same Zod schema validation. Invalid `provider_package`
-values (path traversal, Node.js built-in modules), invalid `provider_factory_method`
-identifiers, and `pattern` strings exceeding 500 characters are rejected at load time with
-a clear error message.
+All three factory methods use the same Zod schema for validation. The loader rejects invalid `provider_package` values (including path traversal and Node.js built-in modules), invalid `provider_factory_method` identifiers, and `pattern` strings longer than 500 characters. It reports these errors when the configuration is loaded.
 
 ---
 
 ### `ConfiguredLLMGateway`
 
-Returned by `loader.get(name)`. System rules and compliance rules are pre-bound from the
-agent's definition.
+Returned by `loader.get(name)`. The agent's system rules and compliance rules are bound when the instance is created.
 
 #### `executeTextTask(instructionsOrVariables, contextPayload?)`
 
-- Pass a `string` to use as instructions directly.
-- Pass a `Record<string, string>` to fill the agent's `instruction_template`. Throws if a referenced variable is missing or no template is defined.
-- `contextPayload` is appended to the user message (optional, defaults to `''`).
+- Pass a `string` to provide instructions directly.
+- Pass a `Record<string, string>` to populate the agent's `instruction_template`. The method throws if a required variable is missing or if no template is defined.
+- `contextPayload` is optional and is appended to the user message. It defaults to `''`.
 - Returns `GatewayResponseEnvelope<string>`.
 
 #### `executeStructuredTask<T>(instructionsOrVariables, validationSchema, contextPayload?)`
 
-Same instruction resolution as above. Returns `GatewayResponseEnvelope<T>`.
+Uses the same instruction resolution as `executeTextTask`. Returns `GatewayResponseEnvelope<T>`.
 
 ---
 
@@ -191,19 +179,16 @@ Same instruction resolution as above. Returns `GatewayResponseEnvelope<T>`.
 
 | Param | Type | Description |
 |---|---|---|
-| `config` | `PhaseRuntimeConfig` | Provider and model configuration |
-| `delayFn` | `(ms: number) => Promise<void>` | Override the retry delay (useful in tests) |
+| `config` | `PhaseRuntimeConfig` | Provider and model configuration. |
+| `delayFn` | `(ms: number) => Promise<void>` | Overrides the retry delay. Useful in tests. |
 
 #### `executeTextTask(systemRules, instructions, contextPayload, complianceRules?)`
 
-Calls the provider and returns `GatewayResponseEnvelope<string>`. Filler text is stripped;
-compliance rules are applied in order.
+Calls the provider and returns `GatewayResponseEnvelope<string>`. It removes filler text and applies compliance rules in order.
 
 #### `executeStructuredTask<T>(systemRules, instructions, contextPayload, validationSchema)`
 
-Calls the provider with a Zod schema and returns `GatewayResponseEnvelope<T>`. Throws
-`SCHEMA_VALIDATION_FAILED` when the model's output does not match the schema, and
-`OUTPUT_TRUNCATED_BY_LIMIT` when generation stopped at the token limit.
+Calls the provider with a Zod schema and returns `GatewayResponseEnvelope<T>`. It throws `SCHEMA_VALIDATION_FAILED` if the model output does not match the schema, or `OUTPUT_TRUNCATED_BY_LIMIT` if generation stops because it reaches the token limit.
 
 ---
 
@@ -223,34 +208,33 @@ interface GatewayConfig {
 interface AgentDefinition {
   provider_package: string;         // e.g. '@ai-sdk/anthropic'
   provider_factory_method: string;  // e.g. 'anthropic'
-  model_identifier: string;         // e.g. 'claude-sonnet-4-5'
+  model_identifier: string;        // e.g. 'claude-sonnet-4-5'
   settings?: {
     temperature?: number;
     max_tokens?: number;
   };
   system_rules: string;
   compliance_rules?: SerializedComplianceRule[];
-  instruction_template?: string;    // Uses {{variable}} placeholders
+  instruction_template?: string;   // Uses {{variable}} placeholders
 }
 ```
 
 #### `SerializedComplianceRule`
 
-JSON-safe compliance rule (RegExp expressed as a string):
+A JSON-safe compliance rule. The regular expression is provided as a string:
 
 ```typescript
 interface SerializedComplianceRule {
   ruleId: string;
   type: 'REPLACE' | 'REJECT';
-  pattern: string;           // RegExp source, e.g. "\\bdelve\\b" - max 500 chars
-  flags?: string;            // RegExp flags, e.g. "gi"
-  replacementValue?: string; // required when type === 'REPLACE'
+  pattern: string;            // RegExp source, e.g. "\\bdelve\\b" — max 500 chars
+  flags?: string;             // RegExp flags, e.g. "gi"
+  replacementValue?: string;  // required when type === 'REPLACE'
   customErrorMessage?: string;
 }
 ```
 
-> **Note:** `pattern` is capped at 500 characters. Longer patterns are rejected at
-> config-load time to prevent catastrophic-backtracking (ReDoS) attacks.
+> **Note:** `pattern` is limited to 500 characters. Longer patterns are rejected when the configuration is loaded to reduce the risk of catastrophic backtracking (ReDoS).
 
 #### `PhaseRuntimeConfig` (direct API)
 
@@ -283,8 +267,7 @@ interface TextComplianceRule {
 }
 ```
 
-`REPLACE` rules run before `REJECT` rules. In `AgentDefinition`, use `SerializedComplianceRule`
-(pattern as a string); `ConfiguredLLMGateway` compiles them to `RegExp` on construction.
+`REPLACE` rules run before `REJECT` rules. In `AgentDefinition`, use `SerializedComplianceRule` with the pattern stored as a string. `ConfiguredLLMGateway` compiles these patterns to `RegExp` when it is constructed.
 
 ---
 
@@ -307,27 +290,24 @@ interface GatewayResponseEnvelope<T> {
 
 | Code | Trigger |
 |---|---|
-| `DYNAMIC_IMPORT_FAILED` | Provider package could not be loaded |
-| `PROVIDER_AUTHENTICATION_ERROR` | HTTP 401 / 403 |
-| `PROVIDER_RATE_LIMIT_EXCEEDED` | HTTP 429 (rate limit; retried) |
-| `PROVIDER_QUOTA_EXHAUSTED` | HTTP 402 or quota/billing 429 |
-| `CONTEXT_WINDOW_EXCEEDED` | HTTP 400 with context/length signal |
-| `PROVIDER_SERVER_ERROR` | HTTP 5xx or unclassified 400 (retried) |
-| `SCHEMA_VALIDATION_FAILED` | Zod parse error on structured output |
-| `OUTPUT_TRUNCATED_BY_LIMIT` | `finishReason === 'length'` |
-| `STATUTORY_RULE_VIOLATION` | A `REJECT` compliance rule matched |
-| `CONFIGURATION_ERROR` | Invalid `provider_package` or `provider_factory_method`; missing `instruction_template`; unresolved template variable |
+| `DYNAMIC_IMPORT_FAILED` | The provider package could not be loaded. |
+| `PROVIDER_AUTHENTICATION_ERROR` | HTTP 401 / 403. |
+| `PROVIDER_RATE_LIMIT_EXCEEDED` | HTTP 429 (rate limit; retried). |
+| `PROVIDER_QUOTA_EXHAUSTED` | HTTP 402 or quota/billing 429. |
+| `CONTEXT_WINDOW_EXCEEDED` | HTTP 400 with a context or length error. |
+| `PROVIDER_SERVER_ERROR` | HTTP 5xx or an unclassified 400 (retried). |
+| `SCHEMA_VALIDATION_FAILED` | Zod parse error on structured output. |
+| `OUTPUT_TRUNCATED_BY_LIMIT` | `finishReason === 'length'`. |
+| `STATUTORY_RULE_VIOLATION` | A `REJECT` compliance rule matched. |
+| `CONFIGURATION_ERROR` | Invalid `provider_package` or `provider_factory_method`, missing `instruction_template`, or an unresolved template variable. |
 
-All errors are instances of `ForgeGatewayError`, which extends `Error` with an
-`errorCode: GatewayErrorCode` property.
+All errors are instances of `ForgeGatewayError`, which extends `Error` and includes an `errorCode: GatewayErrorCode` property.
 
 ---
 
 ## Retry behaviour
 
-Retries fire for `PROVIDER_RATE_LIMIT_EXCEEDED` and `PROVIDER_SERVER_ERROR` only - up to 3
-attempts with delays of 2 s, 4 s, 8 s plus up to 1 s of random jitter. All other error codes
-throw immediately.
+Retries are triggered only by `PROVIDER_RATE_LIMIT_EXCEEDED` and `PROVIDER_SERVER_ERROR`. The gateway makes up to 3 attempts, with delays of 2 s, 4 s, and 8 s, plus up to 1 s of random jitter. All other error codes are thrown immediately.
 
 ## Structured output example
 
@@ -358,8 +338,7 @@ console.log(result.data.rationale); // → "Strong match on …"
 npm test
 ```
 
-Tests use Jest with ts-jest in ESM mode. On Windows, the test script invokes Node.js directly
-(`node --experimental-vm-modules`) rather than the `.bin/jest` shim.
+Tests use Jest with ts-jest in ESM mode. On Windows, the test script runs Node.js directly (`node --experimental-vm-modules`) instead of using the `.bin/jest` shim.
 
 To inject a custom delay and avoid real `setTimeout` calls in tests:
 
@@ -375,7 +354,7 @@ const gateway = new LLMGateway(config, mockDelay);
 npm run build
 ```
 
-Output goes to `dist/` as ESM with declaration files and source maps.
+The build outputs ESM files, declaration files, and source maps to `dist/`.
 
 ## Licence
 
