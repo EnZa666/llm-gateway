@@ -1,0 +1,34 @@
+{
+  "agents": {
+    "resume-scorer": {
+      "provider_package": "@ai-sdk/anthropic",
+      "provider_factory_method": "anthropic",
+      "model_identifier": "claude-sonnet-4-5",
+      "settings": { "temperature": 0.2, "max_tokens": 1024 },
+      "system_rules": "You are a professional resume evaluator. Be concise, specific, and objective. Score fairly against the stated requirements only.",
+      "instruction_template": "Score this resume against the job description. Return a numeric score from 0–10 and a one-paragraph rationale.\n\nResume:\n{{resume}}\n\nJob Description:\n{{jd}}",
+      "compliance_rules": [
+        { "ruleId": "no-delve",   "type": "REJECT", "pattern": "\\bdelve\\b",   "flags": "gi" },
+        { "ruleId": "no-tapestry","type": "REJECT", "pattern": "\\btapestry\\b","flags": "gi" }
+      ]
+    },
+
+    "cover-letter-writer": {
+      "provider_package": "@ai-sdk/anthropic",
+      "provider_factory_method": "anthropic",
+      "model_identifier": "claude-sonnet-4-5",
+      "settings": { "temperature": 0.7, "max_tokens": 800 },
+      "system_rules": "You are a professional cover letter writer. Write in first person, active voice. Keep the letter under 300 words.",
+      "instruction_template": "Write a cover letter for the following role.\n\nRole: {{role}}\nCompany: {{company}}\nKey skills to highlight: {{skills}}"
+    },
+
+    "resume-tailor": {
+      "provider_package": "@ai-sdk/openai",
+      "provider_factory_method": "openai",
+      "model_identifier": "gpt-4o",
+      "settings": { "temperature": 0.3, "max_tokens": 2048 },
+      "system_rules": "You are a resume optimisation expert. Rewrite the resume to better match the job description without fabricating experience. Preserve all factual content.",
+      "instruction_template": "Rewrite the resume below to better match the job description. Return only the rewritten resume text.\n\nResume:\n{{resume}}\n\nJob Description:\n{{jd}}"
+    }
+  }
+}

@@ -1,0 +1,4 @@
+.env
+agents.json
+coverage/
+node_modules/

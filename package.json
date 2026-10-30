@@ -1,0 +1,44 @@
+{
+  "name": "llm-gateway",
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Provider-agnostic, stateless LLM execution client with typed telemetry and compliance injection",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "node --experimental-vm-modules node_modules/jest-cli/bin/jest.js",
+    "test:unit": "node --experimental-vm-modules node_modules/jest-cli/bin/jest.js --testPathPattern=src/__tests__"
+  },
+  "peerDependencies": {
+    "@ai-sdk/anthropic": ">=1.0.0",
+    "@ai-sdk/openai": ">=1.0.0",
+    "ai": ">=4.0.0",
+    "zod": ">=3.0.0"
+  },
+  "devDependencies": {
+    "@ai-sdk/anthropic": "^1.0.0",
+    "@ai-sdk/openai": "^1.0.0",
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "ai": "^4.0.0",
+    "dotenv": "^18.0.9",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.0",
+    "zod": "^3.22.0"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^0.0.52"
+  }
+}
